@@ -136,9 +136,9 @@ def train_ffnn(train_exs, dev_exs, test_exs, word_vectors):
                                                                                   feed_dict={fx: train_mat[ex_idx]})
             if (train_labels_arr[ex_idx] == pred_this_instance):
                 train_correct += 1
-            print "Example " + repr(train_mat[ex_idx]) + "; gold = " + repr(train_labels_arr[ex_idx]) + "; pred = " + \
-                  repr(pred_this_instance) + " with probs " + repr(probs_this_instance)
-            print "  Hidden layer activations for this example: " + repr(z_this_instance)
+            #print "Example " + repr(train_mat[ex_idx]) + "; gold = " + repr(train_labels_arr[ex_idx]) + "; pred = " + \
+                  #repr(pred_this_instance) + " with probs " + repr(probs_this_instance)
+            #print "  Hidden layer activations for this example: " + repr(z_this_instance)
         print repr(train_correct) + "/" + repr(len(train_labels_arr)) + " correct after training"
 
         # Evaluate on the dev set
