@@ -121,7 +121,7 @@ def train_ffnn(train_exs, dev_exs, test_exs, word_vectors):
                 # sess.run generally evaluates variables in the computation graph given inputs. "Evaluating" train_op
                 # causes training to happen
                 [_, loss_this_instance, summary] = sess.run([train_op, loss, merged], feed_dict={
-                    fx: train_exs[ex_idx],
+                    fx: train_mat[ex_idx],
                     label: np.array([train_labels_arr[ex_idx]])})
                 train_writer.add_summary(summary, step_idx)
                 step_idx += 1
@@ -147,14 +147,7 @@ def train_ffnn(train_exs, dev_exs, test_exs, word_vectors):
             # Note that we only feed in the x, not the y, since we're not training. We're also extracting different
             # quantities from the running of the computation graph, namely the probabilities, prediction, and z
             [probs_this_instance, pred_this_instance, z_this_instance] = sess.run([probs, one_best, z2],
-                                                                                  feed_dict={fx: np.array(
-                                                                                      [word_vectors.vectors[int(
-                                                                                          wordindex)]
-                                                                                       for
-                                                                                       wordindex
-                                                                                       in
-                                                                                       valid_mat[
-                                                                                           ex_idx]]).flatten()})
+                                                                                  feed_dict={fx: valid_mat[ex_idx]})
             if (valid_labels_arr[ex_idx] == pred_this_instance):
                 valid_correct += 1
         print repr(valid_correct) + "/" + repr(len(valid_labels_arr)) + " correct for dev"
@@ -165,14 +158,7 @@ def train_ffnn(train_exs, dev_exs, test_exs, word_vectors):
             # Note that we only feed in the x, not the y, since we're not training. We're also extracting different
             # quantities from the running of the computation graph, namely the probabilities, prediction, and z
             [probs_this_instance, pred_this_instance, z_this_instance] = sess.run([probs, one_best, z2],
-                                                                                  feed_dict={fx: np.array(
-                                                                                      [word_vectors.vectors[int(
-                                                                                          wordindex)]
-                                                                                       for
-                                                                                       wordindex
-                                                                                       in
-                                                                                       test_mat[
-                                                                                           ex_idx]]).flatten()})
+                                                                                  feed_dict={fx: test_mat[ex_idx]})
             test_results.append(SentimentExample(test_exs[ex_idx].indexed_words, pred_this_instance))
             if (test_labels_arr[ex_idx] == pred_this_instance):
                 test_correct += 1
