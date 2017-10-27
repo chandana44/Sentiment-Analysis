@@ -21,7 +21,7 @@ if __name__ == '__main__':
     else:
         system_to_run = "FANCY"
     if system_to_run == "FF":
-        test_exs_predicted = train_ffnn(train_exs, dev_exs, test_exs, word_vectors)
+        test_exs_predicted = train_ffnn(train_exs[0:100], dev_exs[0:100], test_exs[0:100], word_vectors)
         write_sentiment_examples(test_exs_predicted, "test-blind.output.txt", word_vectors.word_indexer)
     elif system_to_run == "FANCY":
         test_exs_predicted = train_fancy(train_exs, dev_exs, test_exs, word_vectors)

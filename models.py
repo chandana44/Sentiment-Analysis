@@ -38,10 +38,10 @@ def train_ffnn(train_exs, dev_exs, test_exs, word_vectors):
 
     # MAKE THE DATA
     # Define some constants
-    feat_vec_size = seq_max_len * word_vector_dimension
+    feat_vec_size = seq_max_len
     # Let's use 10 hidden units
-    embedding_size1 = feat_vec_size / 20
-    embedding_size2 = embedding_size1 / 20
+    embedding_size1 = feat_vec_size / 3
+    embedding_size2 = embedding_size1 / 2
     # We're using 2 classes. What's presented here is multi-class code that can scale to more classes, though
     # slightly more compact code for the binary case is possible.
     num_classes = 2
@@ -121,7 +121,7 @@ def train_ffnn(train_exs, dev_exs, test_exs, word_vectors):
                 # sess.run generally evaluates variables in the computation graph given inputs. "Evaluating" train_op
                 # causes training to happen
                 [_, loss_this_instance, summary] = sess.run([train_op, loss, merged], feed_dict={
-                    fx: np.array([word_vectors.vectors[int(wordindex)] for wordindex in train_mat[ex_idx]]).flatten(),
+                    fx: train_exs[ex_idx],
                     label: np.array([train_labels_arr[ex_idx]])})
                 train_writer.add_summary(summary, step_idx)
                 step_idx += 1
@@ -133,14 +133,7 @@ def train_ffnn(train_exs, dev_exs, test_exs, word_vectors):
             # Note that we only feed in the x, not the y, since we're not training. We're also extracting different
             # quantities from the running of the computation graph, namely the probabilities, prediction, and z
             [probs_this_instance, pred_this_instance, z_this_instance] = sess.run([probs, one_best, z2],
-                                                                                  feed_dict={fx: np.array(
-                                                                                      [word_vectors.vectors[int(
-                                                                                          wordindex)]
-                                                                                       for
-                                                                                       wordindex
-                                                                                       in
-                                                                                       train_mat[
-                                                                                           ex_idx]]).flatten()})
+                                                                                  feed_dict={fx: train_mat[ex_idx]})
             if (train_labels_arr[ex_idx] == pred_this_instance):
                 train_correct += 1
             print "Example " + repr(train_mat[ex_idx]) + "; gold = " + repr(train_labels_arr[ex_idx]) + "; pred = " + \
