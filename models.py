@@ -164,7 +164,7 @@ def train_ffnn(train_exs, dev_exs, test_exs, word_vectors):
                                                                                            ex_idx]]).flatten()})
             if (valid_labels_arr[ex_idx] == pred_this_instance):
                 valid_correct += 1
-        print repr(valid_correct) + "/" + repr(len(valid_labels_arr)) + " correct after training"
+        print repr(valid_correct) + "/" + repr(len(valid_labels_arr)) + " correct for dev"
 
         # Evaluate on the test set
         test_correct = 0
@@ -180,10 +180,10 @@ def train_ffnn(train_exs, dev_exs, test_exs, word_vectors):
                                                                                        in
                                                                                        test_mat[
                                                                                            ex_idx]]).flatten()})
-            test_results.append(SentimentExample(test_exs[ex_idx], pred_this_instance))
+            test_results.append(SentimentExample(test_exs[ex_idx].indexed_words, pred_this_instance))
             if (test_labels_arr[ex_idx] == pred_this_instance):
                 test_correct += 1
-        print repr(test_correct) + "/" + repr(len(test_labels_arr)) + " correct after training"
+        print repr(test_correct) + "/" + repr(len(test_labels_arr)) + " correct for test"
 
     return test_results
 
