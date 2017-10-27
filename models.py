@@ -13,6 +13,14 @@ def pad_to_length(np_arr, length):
     result[0:np_arr.shape[0]] = np_arr
     return result
 
+def processdata(exs, seq_max_len):
+    # To get you started off, we'll pad the training input to 60 words to make it a square matrix.
+    mat = np.asarray([pad_to_length(np.array(ex.indexed_words), seq_max_len) for ex in exs])
+    # Also store the sequence lengths -- this could be useful for training LSTMs
+    seq_lens = np.array([len(ex.indexed_words) for ex in exs])
+    # Labels
+    labels_arr = np.array([ex.label for ex in exs])
+    return mat, seq_lens, labels_arr
 
 # Train a feedforward neural network on the given training examples, using dev_exs for development and returning
 # predictions on the *blind* test_exs (all test_exs have label 0 as a dummy placeholder value). Returned predictions
@@ -22,19 +30,18 @@ def train_ffnn(train_exs, dev_exs, test_exs, word_vectors):
     # 59 is the max sentence length in the corpus, so let's set this to 60
     seq_max_len = 60
     word_vector_dimension = 300
-    # To get you started off, we'll pad the training input to 60 words to make it a square matrix.
-    train_mat = np.asarray([pad_to_length(np.array(ex.indexed_words), seq_max_len) for ex in train_exs])
-    # Also store the sequence lengths -- this could be useful for training LSTMs
-    train_seq_lens = np.array([len(ex.indexed_words) for ex in train_exs])
-    # Labels
-    train_labels_arr = np.array([ex.label for ex in train_exs])
+    test_results = []
+
+    train_mat, train_seq_lens, train_labels_arr = processdata(train_exs, seq_max_len)
+    valid_mat, valid_seq_lens, valid_labels_arr = processdata(dev_exs, seq_max_len)
+    test_mat, test_seq_lens, test_labels_arr = processdata(test_exs, seq_max_len)
 
     # MAKE THE DATA
     # Define some constants
     feat_vec_size = seq_max_len * word_vector_dimension
     # Let's use 10 hidden units
-    embedding_size1 = feat_vec_size/20
-    embedding_size2 = embedding_size1/20
+    embedding_size1 = feat_vec_size / 20
+    embedding_size2 = embedding_size1 / 20
     # We're using 2 classes. What's presented here is multi-class code that can scale to more classes, though
     # slightly more compact code for the binary case is possible.
     num_classes = 2
@@ -43,10 +50,12 @@ def train_ffnn(train_exs, dev_exs, test_exs, word_vectors):
     # Define the core neural network
     fx = tf.placeholder(tf.float32, feat_vec_size)
     # Other initializers like tf.random_normal_initializer are possible too
-    V1 = tf.get_variable("V1", [embedding_size1, feat_vec_size], initializer=tf.contrib.layers.xavier_initializer(seed=0))
+    V1 = tf.get_variable("V1", [embedding_size1, feat_vec_size],
+                         initializer=tf.contrib.layers.xavier_initializer(seed=0))
     # Can use other nonlinearities: tf.nn.relu, tf.tanh, etc.
     z1 = tf.sigmoid(tf.tensordot(V1, fx, 1))
-    V2 = tf.get_variable("V2", [embedding_size2, embedding_size1], initializer=tf.contrib.layers.xavier_initializer(seed=0))
+    V2 = tf.get_variable("V2", [embedding_size2, embedding_size1],
+                         initializer=tf.contrib.layers.xavier_initializer(seed=0))
     # Can use other nonlinearities: tf.nn.relu, tf.tanh, etc.
     z2 = tf.sigmoid(tf.tensordot(V2, z1, 1))
     W = tf.get_variable("W", [num_classes, embedding_size2])
@@ -111,8 +120,9 @@ def train_ffnn(train_exs, dev_exs, test_exs, word_vectors):
             for ex_idx in xrange(0, len(train_mat)):
                 # sess.run generally evaluates variables in the computation graph given inputs. "Evaluating" train_op
                 # causes training to happen
-                [_, loss_this_instance, summary] = sess.run([train_op, loss, merged], feed_dict={fx: train_mat[ex_idx],
-                                                                                                 label: np.array([train_labels_arr[ex_idx]])})
+                [_, loss_this_instance, summary] = sess.run([train_op, loss, merged], feed_dict={
+                    fx: np.array([word_vectors.vectors[int(wordindex)] for wordindex in train_mat[ex_idx]]).flatten(),
+                    label: np.array([train_labels_arr[ex_idx]])})
                 train_writer.add_summary(summary, step_idx)
                 step_idx += 1
                 loss_this_iter += loss_this_instance
@@ -123,13 +133,59 @@ def train_ffnn(train_exs, dev_exs, test_exs, word_vectors):
             # Note that we only feed in the x, not the y, since we're not training. We're also extracting different
             # quantities from the running of the computation graph, namely the probabilities, prediction, and z
             [probs_this_instance, pred_this_instance, z_this_instance] = sess.run([probs, one_best, z2],
-                                                                                  feed_dict={fx: train_mat[ex_idx]})
+                                                                                  feed_dict={fx: np.array(
+                                                                                      [word_vectors.vectors[int(
+                                                                                          wordindex)]
+                                                                                       for
+                                                                                       wordindex
+                                                                                       in
+                                                                                       train_mat[
+                                                                                           ex_idx]]).flatten()})
             if (train_labels_arr[ex_idx] == pred_this_instance):
                 train_correct += 1
             print "Example " + repr(train_mat[ex_idx]) + "; gold = " + repr(train_labels_arr[ex_idx]) + "; pred = " + \
                   repr(pred_this_instance) + " with probs " + repr(probs_this_instance)
             print "  Hidden layer activations for this example: " + repr(z_this_instance)
         print repr(train_correct) + "/" + repr(len(train_labels_arr)) + " correct after training"
+
+        # Evaluate on the dev set
+        valid_correct = 0
+        for ex_idx in xrange(0, len(valid_mat)):
+            # Note that we only feed in the x, not the y, since we're not training. We're also extracting different
+            # quantities from the running of the computation graph, namely the probabilities, prediction, and z
+            [probs_this_instance, pred_this_instance, z_this_instance] = sess.run([probs, one_best, z2],
+                                                                                  feed_dict={fx: np.array(
+                                                                                      [word_vectors.vectors[int(
+                                                                                          wordindex)]
+                                                                                       for
+                                                                                       wordindex
+                                                                                       in
+                                                                                       valid_mat[
+                                                                                           ex_idx]]).flatten()})
+            if (valid_labels_arr[ex_idx] == pred_this_instance):
+                valid_correct += 1
+        print repr(valid_correct) + "/" + repr(len(valid_labels_arr)) + " correct after training"
+
+        # Evaluate on the test set
+        test_correct = 0
+        for ex_idx in xrange(0, len(test_mat)):
+            # Note that we only feed in the x, not the y, since we're not training. We're also extracting different
+            # quantities from the running of the computation graph, namely the probabilities, prediction, and z
+            [probs_this_instance, pred_this_instance, z_this_instance] = sess.run([probs, one_best, z2],
+                                                                                  feed_dict={fx: np.array(
+                                                                                      [word_vectors.vectors[int(
+                                                                                          wordindex)]
+                                                                                       for
+                                                                                       wordindex
+                                                                                       in
+                                                                                       test_mat[
+                                                                                           ex_idx]]).flatten()})
+            test_results.append(SentimentExample(test_exs[ex_idx], pred_this_instance))
+            if (test_labels_arr[ex_idx] == pred_this_instance):
+                test_correct += 1
+        print repr(test_correct) + "/" + repr(len(test_labels_arr)) + " correct after training"
+
+    return test_results
 
 
 # Analogous to train_ffnn, but trains your fancier model.
