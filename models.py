@@ -190,10 +190,10 @@ def train_fancy(train_exs, dev_exs, test_exs, word_vectors):
 
     # DEFINING THE COMPUTATION GRAPH
     # Define the core neural network
-    fx = tf.placeholder(tf.float32, feat_vec_size)
+    fx = tf.placeholder(tf.int32, feat_vec_size)
 
-    train_data = tf.Variable(tf.zeros([seq_max_len, word_vector_dimension]), dtype=tf.float32)
-    train_data = tf.nn.embedding_lookup(word_vectors.vectors, fx)
+    train_data = tf.Variable(tf.zeros([1, seq_max_len, word_vector_dimension]), dtype=tf.float32)
+    train_data = tf.reshape(tf.nn.embedding_lookup(word_vectors.vectors, fx),[1, seq_max_len, word_vector_dimension])
 
     lstmCell = tf.contrib.rnn.BasicLSTMCell(lstmUnits)
     lstmCell = tf.contrib.rnn.DropoutWrapper(cell=lstmCell, output_keep_prob=0.75)
