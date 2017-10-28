@@ -16,6 +16,7 @@ def pad_to_length(np_arr, length):
 def processdata(exs, seq_max_len):
     # To get you started off, we'll pad the training input to 60 words to make it a square matrix.
     mat = np.asarray([pad_to_length(np.array(ex.indexed_words), seq_max_len) for ex in exs])
+
     # Also store the sequence lengths -- this could be useful for training LSTMs
     seq_lens = np.array([len(ex.indexed_words) for ex in exs])
     # Labels
@@ -38,10 +39,10 @@ def train_ffnn(train_exs, dev_exs, test_exs, word_vectors):
 
     # MAKE THE DATA
     # Define some constants
-    feat_vec_size = seq_max_len
+    feat_vec_size = word_vector_dimension
     # Let's use 10 hidden units
     embedding_size1 = feat_vec_size / 3
-    embedding_size2 = embedding_size1 / 2
+    embedding_size2 = embedding_size1 / 4
     # We're using 2 classes. What's presented here is multi-class code that can scale to more classes, though
     # slightly more compact code for the binary case is possible.
     num_classes = 2
@@ -74,11 +75,11 @@ def train_ffnn(train_exs, dev_exs, test_exs, word_vectors):
     # TRAINING ALGORITHM CUSTOMIZATION
     # Decay the learning rate by a factor of 0.99 every 10 gradient steps (for larger datasets you'll want a slower
     # weight decay schedule
-    decay_steps = 10
-    learning_rate_decay_factor = 0.1
+    decay_steps = 100
+    learning_rate_decay_factor = 0.99
     global_step = tf.contrib.framework.get_or_create_global_step()
     # Smaller learning rates are sometimes necessary for larger networks
-    initial_learning_rate = 0.1
+    initial_learning_rate = 0.01
     # Decay the learning rate exponentially based on the number of steps.
     lr = tf.train.exponential_decay(initial_learning_rate,
                                     global_step,
@@ -121,7 +122,7 @@ def train_ffnn(train_exs, dev_exs, test_exs, word_vectors):
                 # sess.run generally evaluates variables in the computation graph given inputs. "Evaluating" train_op
                 # causes training to happen
                 [_, loss_this_instance, summary] = sess.run([train_op, loss, merged], feed_dict={
-                    fx: train_mat[ex_idx],
+                    fx: np.mean(np.array([word_vectors.vectors[int(wordindex)] for wordindex in train_mat[ex_idx]]),0),
                     label: np.array([train_labels_arr[ex_idx]])})
                 train_writer.add_summary(summary, step_idx)
                 step_idx += 1
@@ -133,7 +134,7 @@ def train_ffnn(train_exs, dev_exs, test_exs, word_vectors):
             # Note that we only feed in the x, not the y, since we're not training. We're also extracting different
             # quantities from the running of the computation graph, namely the probabilities, prediction, and z
             [probs_this_instance, pred_this_instance, z_this_instance] = sess.run([probs, one_best, z2],
-                                                                                  feed_dict={fx: train_mat[ex_idx]})
+                                                                                  feed_dict={fx: np.mean(np.array([word_vectors.vectors[int(wordindex)] for wordindex in train_mat[ex_idx]]),0)})
             if (train_labels_arr[ex_idx] == pred_this_instance):
                 train_correct += 1
             #print "Example " + repr(train_mat[ex_idx]) + "; gold = " + repr(train_labels_arr[ex_idx]) + "; pred = " + \
@@ -147,7 +148,7 @@ def train_ffnn(train_exs, dev_exs, test_exs, word_vectors):
             # Note that we only feed in the x, not the y, since we're not training. We're also extracting different
             # quantities from the running of the computation graph, namely the probabilities, prediction, and z
             [probs_this_instance, pred_this_instance, z_this_instance] = sess.run([probs, one_best, z2],
-                                                                                  feed_dict={fx: valid_mat[ex_idx]})
+                                                                                  feed_dict={fx: np.mean(np.array([word_vectors.vectors[int(wordindex)] for wordindex in valid_mat[ex_idx]]),0)})
             if (valid_labels_arr[ex_idx] == pred_this_instance):
                 valid_correct += 1
         print repr(valid_correct) + "/" + repr(len(valid_labels_arr)) + " correct for dev"
@@ -158,7 +159,7 @@ def train_ffnn(train_exs, dev_exs, test_exs, word_vectors):
             # Note that we only feed in the x, not the y, since we're not training. We're also extracting different
             # quantities from the running of the computation graph, namely the probabilities, prediction, and z
             [probs_this_instance, pred_this_instance, z_this_instance] = sess.run([probs, one_best, z2],
-                                                                                  feed_dict={fx: test_mat[ex_idx]})
+                                                                                  feed_dict={fx: np.mean(np.array([word_vectors.vectors[int(wordindex)] for wordindex in test_mat[ex_idx]]),0)})
             test_results.append(SentimentExample(test_exs[ex_idx].indexed_words, pred_this_instance))
             if (test_labels_arr[ex_idx] == pred_this_instance):
                 test_correct += 1
