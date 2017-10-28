@@ -75,11 +75,11 @@ def train_ffnn(train_exs, dev_exs, test_exs, word_vectors):
     # TRAINING ALGORITHM CUSTOMIZATION
     # Decay the learning rate by a factor of 0.99 every 10 gradient steps (for larger datasets you'll want a slower
     # weight decay schedule
-    decay_steps = 100
+    decay_steps = 8000
     learning_rate_decay_factor = 0.99
     global_step = tf.contrib.framework.get_or_create_global_step()
     # Smaller learning rates are sometimes necessary for larger networks
-    initial_learning_rate = 0.01
+    initial_learning_rate = 0.001
     # Decay the learning rate exponentially based on the number of steps.
     lr = tf.train.exponential_decay(initial_learning_rate,
                                     global_step,
