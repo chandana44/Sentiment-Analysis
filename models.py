@@ -312,21 +312,20 @@ def train_fancy2(train_exs, dev_exs, test_exs, word_vectors):
 
 from random import randint
 def getTrainBatch(train_mat, train_labels_arr, batchSize, maxSeqLength):
-    labels = []
+    labels = np.zeros([batchSize, 2])
     arr = np.zeros([batchSize, maxSeqLength])
     for i in range(batchSize):
         num = randint(0, len(train_mat)-1)
         arr[i]=train_mat[num]
-        labels.append(train_labels_arr[num])
+        labels[i][train_labels_arr[num]] = 1
     return arr, labels
 
 def getTestBatch(test_mat, test_labels_arr, batchSize, maxSeqLength):
-    labels = []
+    labels = np.zeros([batchSize, 2])
     arr = np.zeros([batchSize, maxSeqLength])
     for i in range(batchSize):
-        num = randint(0, len(test_mat) - 1)
-        arr[i] = test_mat[num]
-        labels.append(test_labels_arr[num])
+        arr[i] = test_mat[i]
+        labels[i][test_labels_arr[i]] = 1
     return arr, labels
 
 
@@ -334,11 +333,10 @@ def getTestBatch(test_mat, test_labels_arr, batchSize, maxSeqLength):
 def train_fancy(train_exs, dev_exs, test_exs, word_vectors):
     maxSeqLength = 60
     numDimensions = 300
-    batchSize = 24
+    batchSize = 1
     lstmUnits = 64
     numClasses = 2
-    iterations = 1000
-    test_results = []
+    iterations = 10000
 
     labels = tf.placeholder(tf.float32, [batchSize, numClasses])
     input_data = tf.placeholder(tf.int32, [batchSize, maxSeqLength])
@@ -349,6 +347,7 @@ def train_fancy(train_exs, dev_exs, test_exs, word_vectors):
 
     train_data = tf.Variable(tf.zeros([batchSize, maxSeqLength, numDimensions]), dtype=tf.float32)
     train_data = tf.nn.embedding_lookup(word_vectors.vectors, input_data)
+    train_data = tf.cast(train_data, tf.float32)
 
     lstmCell = tf.contrib.rnn.BasicLSTMCell(lstmUnits)
     lstmCell = tf.contrib.rnn.DropoutWrapper(cell=lstmCell, output_keep_prob=0.75)
@@ -395,7 +394,27 @@ def train_fancy(train_exs, dev_exs, test_exs, word_vectors):
     sess = tf.InteractiveSession()
     saver = tf.train.Saver()
     saver.restore(sess, tf.train.latest_checkpoint('models'))
-    iterations = 10
-    for i in range(iterations):
-        nextBatch, nextBatchLabels = getTestBatch(test_mat, test_labels_arr, batchSize, maxSeqLength)
-        print("Accuracy for this batch:", (sess.run(accuracy, {input_data: nextBatch, labels: nextBatchLabels})) * 100)
+
+    # Evaluate on the test set
+    valid_correct = 0
+    for ex_idx in xrange(0, len(valid_mat)):
+        nextBatch, nextBatchLabels = getTestBatch(test_mat[ex_idx:ex_idx + 1], test_labels_arr[ex_idx:ex_idx + 1], 1,
+                                                  maxSeqLength)
+        predict = tf.argmax(sess.run(prediction, {input_data: nextBatch, labels: nextBatchLabels}), 1)
+        if (valid_labels_arr[ex_idx] == predict):
+            valid_correct += 1
+    print repr(valid_correct) + "/" + repr(len(valid_labels_arr)) + " correct for dev"
+
+
+    # Evaluate on the test set
+    test_correct = 0
+    test_results = []
+    for ex_idx in xrange(0, len(test_mat)):
+        nextBatch, nextBatchLabels = getTestBatch(test_mat[ex_idx:ex_idx+1], test_labels_arr[ex_idx:ex_idx+1], 1, maxSeqLength)
+        predict = tf.argmax(sess.run(prediction, {input_data: nextBatch, labels: nextBatchLabels}),1)
+        test_results.append(SentimentExample(test_exs[ex_idx].indexed_words, predict))
+        if (test_labels_arr[ex_idx] == predict):
+                test_correct += 1
+    print repr(valid_correct) + "/" + repr(len(valid_labels_arr)) + " correct for dev"
+
+    return test_results
