@@ -315,7 +315,8 @@ def getTrainBatch(train_mat, train_labels_arr, batchSize, maxSeqLength):
     labels = np.zeros([batchSize, 2])
     arr = np.zeros([batchSize, maxSeqLength])
     for i in range(batchSize):
-        num = randint(0, len(train_mat)-1)
+        #num = randint(0, len(train_mat)-1)
+        num=i
         arr[i]=train_mat[num]
         labels[i][train_labels_arr[num]] = 1
     return arr, labels
@@ -336,7 +337,7 @@ def train_fancy(train_exs, dev_exs, test_exs, word_vectors):
     batchSize = 1
     lstmUnits = 64
     numClasses = 2
-    iterations = 1000
+    iterations = 100
 
     labels = tf.placeholder(tf.float32, [batchSize, numClasses])
     input_data = tf.placeholder(tf.int32, [batchSize, maxSeqLength])
@@ -377,17 +378,17 @@ def train_fancy(train_exs, dev_exs, test_exs, word_vectors):
     writer = tf.summary.FileWriter(logdir, sess.graph)
 
     for i in range(iterations):
-        # Next Batch of reviews
-        nextBatch, nextBatchLabels = getTrainBatch(train_mat, train_labels_arr, batchSize, maxSeqLength)
-        sess.run(optimizer, {input_data: nextBatch, labels: nextBatchLabels})
+        for ex_idx in xrange(0, len(train_mat)):
+            # Next Batch of reviews
+            nextBatch, nextBatchLabels = getTrainBatch(train_mat[ex_idx:ex_idx+1], train_labels_arr[ex_idx:ex_idx+1], batchSize, maxSeqLength)
+            sess.run(optimizer, {input_data: nextBatch, labels: nextBatchLabels})
+            if(ex_idx%1000 == 0):
+                print str(ex_idx) + '/' + str(len(train_mat))
 
-        # Write summary to Tensorboard
-        if (i % (iterations/10) == 0):
-            summary = sess.run(merged, {input_data: nextBatch, labels: nextBatchLabels})
-            writer.add_summary(summary, i)
+        print str(i) + '/' + str(iterations) + ' complete'
 
         # Save the network every 10,000 training iterations
-        if (i % (iterations/10) == 0 and i != 0):
+        if (i % (iterations / 10) == 0 and i != 0):
             save_path = saver.save(sess, "models/pretrained_lstm.ckpt", global_step=i)
             print("saved to %s" % save_path)
     writer.close()
@@ -399,7 +400,7 @@ def train_fancy(train_exs, dev_exs, test_exs, word_vectors):
     # Evaluate on the test set
     valid_correct = 0
     for ex_idx in xrange(0, len(valid_mat)):
-        nextBatch, nextBatchLabels = getTestBatch(valid_mat[ex_idx:ex_idx + 1], valid_labels_arr[ex_idx:ex_idx + 1], 1,
+        nextBatch, nextBatchLabels = getTestBatch(valid_mat[ex_idx:ex_idx + 1], valid_labels_arr[ex_idx:ex_idx + 1], batchSize,
                                                   maxSeqLength)
         predict = sess.run(predictedValue, {input_data: nextBatch, labels: nextBatchLabels})
         #print "gold: "+ str(valid_labels_arr[ex_idx]) + " predicted: "+ str(predict)
@@ -412,7 +413,7 @@ def train_fancy(train_exs, dev_exs, test_exs, word_vectors):
     test_correct = 0
     test_results = []
     for ex_idx in xrange(0, len(test_mat)):
-        nextBatch, nextBatchLabels = getTestBatch(test_mat[ex_idx:ex_idx+1], test_labels_arr[ex_idx:ex_idx+1], 1, maxSeqLength)
+        nextBatch, nextBatchLabels = getTestBatch(test_mat[ex_idx:ex_idx+1], test_labels_arr[ex_idx:ex_idx+1], batchSize, maxSeqLength)
         predict = sess.run(predictedValue, {input_data: nextBatch, labels: nextBatchLabels})
         test_results.append(SentimentExample(test_exs[ex_idx].indexed_words, predict))
         #print "gold: " + str(valid_labels_arr[ex_idx]) + " predicted: " + str(predict)
