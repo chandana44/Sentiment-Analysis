@@ -336,7 +336,7 @@ def train_fancy(train_exs, dev_exs, test_exs, word_vectors):
     batchSize = 1
     lstmUnits = 64
     numClasses = 2
-    iterations = 10000
+    iterations = 100
 
     labels = tf.placeholder(tf.float32, [batchSize, numClasses])
     input_data = tf.placeholder(tf.int32, [batchSize, maxSeqLength])
@@ -401,6 +401,7 @@ def train_fancy(train_exs, dev_exs, test_exs, word_vectors):
         nextBatch, nextBatchLabels = getTestBatch(test_mat[ex_idx:ex_idx + 1], test_labels_arr[ex_idx:ex_idx + 1], 1,
                                                   maxSeqLength)
         predict = tf.argmax(sess.run(prediction, {input_data: nextBatch, labels: nextBatchLabels}), 1)
+        print "gold: "+ str(valid_labels_arr[ex_idx]) + " predicted: "+ str(predict)
         if (valid_labels_arr[ex_idx] == predict):
             valid_correct += 1
     print repr(valid_correct) + "/" + repr(len(valid_labels_arr)) + " correct for dev"
@@ -413,8 +414,9 @@ def train_fancy(train_exs, dev_exs, test_exs, word_vectors):
         nextBatch, nextBatchLabels = getTestBatch(test_mat[ex_idx:ex_idx+1], test_labels_arr[ex_idx:ex_idx+1], 1, maxSeqLength)
         predict = tf.argmax(sess.run(prediction, {input_data: nextBatch, labels: nextBatchLabels}),1)
         test_results.append(SentimentExample(test_exs[ex_idx].indexed_words, predict))
+        print "gold: " + str(valid_labels_arr[ex_idx]) + " predicted: " + str(predict)
         if (test_labels_arr[ex_idx] == predict):
                 test_correct += 1
-    print repr(valid_correct) + "/" + repr(len(valid_labels_arr)) + " correct for dev"
+    print repr(test_correct) + "/" + repr(len(valid_labels_arr)) + " correct for test"
 
     return test_results
