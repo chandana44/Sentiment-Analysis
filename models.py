@@ -337,7 +337,7 @@ def train_fancy(train_exs, dev_exs, test_exs, word_vectors):
     batchSize = 1
     lstmUnits = 64
     numClasses = 2
-    iterations = 100
+    iterations = 20
 
     labels = tf.placeholder(tf.float32, [batchSize, numClasses])
     input_data = tf.placeholder(tf.int32, [batchSize, maxSeqLength])
@@ -390,13 +390,13 @@ def train_fancy(train_exs, dev_exs, test_exs, word_vectors):
             if(ex_idx%1000 == 0):
                 print str(ex_idx) + '/' + str(len(train_mat))
 
-        print 'loss: ' + str(loss_this_iter)
-        print repr(train_correct) + "/" + repr(len(train_labels_arr)) + " correct for train"
-
         print str(i) + '/' + str(iterations) + ' complete'
+        print repr(train_correct) + "/" + repr(len(train_labels_arr)) + " correct for train" + '   loss: ' + str(loss_this_iter)
+
+
 
         # Save the network every 10,000 training iterations
-        if (i % (iterations / 10) == 0 and i != 0):
+        if (i % (iterations-1) == 0 and i != 0):
             save_path = saver.save(sess, "models/pretrained_lstm.ckpt", global_step=i)
             print("saved to %s" % save_path)
     writer.close()
