@@ -378,12 +378,20 @@ def train_fancy(train_exs, dev_exs, test_exs, word_vectors):
     writer = tf.summary.FileWriter(logdir, sess.graph)
 
     for i in range(iterations):
+        train_correct = 0
+        loss_this_iter = 0
         for ex_idx in xrange(0, len(train_mat)):
             # Next Batch of reviews
             nextBatch, nextBatchLabels = getTrainBatch(train_mat[ex_idx:ex_idx+1], train_labels_arr[ex_idx:ex_idx+1], batchSize, maxSeqLength)
-            sess.run(optimizer, {input_data: nextBatch, labels: nextBatchLabels})
+            _, predict, lossval = sess.run([optimizer, predictedValue, loss], {input_data: nextBatch, labels: nextBatchLabels})
+            if (train_labels_arr[ex_idx] == predict):
+                train_correct += 1
+            loss_this_iter += lossval
             if(ex_idx%1000 == 0):
                 print str(ex_idx) + '/' + str(len(train_mat))
+
+        print 'loss: ' + str(loss_this_iter)
+        print repr(train_correct) + "/" + repr(len(train_labels_arr)) + " correct for train"
 
         print str(i) + '/' + str(iterations) + ' complete'
 
