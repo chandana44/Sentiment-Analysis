@@ -358,6 +358,7 @@ def train_fancy(train_exs, dev_exs, test_exs, word_vectors):
     value = tf.transpose(value, [1, 0, 2])
     last = tf.gather(value, int(value.get_shape()[0]) - 1)
     prediction = (tf.matmul(last, weight) + bias)
+    predictedValue = tf.argmax(prediction, 1)
 
     correctPred = tf.equal(tf.argmax(prediction, 1), tf.argmax(labels, 1))
     accuracy = tf.reduce_mean(tf.cast(correctPred, tf.float32))
@@ -400,7 +401,7 @@ def train_fancy(train_exs, dev_exs, test_exs, word_vectors):
     for ex_idx in xrange(0, len(valid_mat)):
         nextBatch, nextBatchLabels = getTestBatch(test_mat[ex_idx:ex_idx + 1], test_labels_arr[ex_idx:ex_idx + 1], 1,
                                                   maxSeqLength)
-        predict = tf.argmax(sess.run(prediction, {input_data: nextBatch, labels: nextBatchLabels}), 1)
+        predict = sess.run(predictedValue, {input_data: nextBatch, labels: nextBatchLabels})
         print "gold: "+ str(valid_labels_arr[ex_idx]) + " predicted: "+ str(predict)
         if (valid_labels_arr[ex_idx] == predict):
             valid_correct += 1
@@ -412,7 +413,7 @@ def train_fancy(train_exs, dev_exs, test_exs, word_vectors):
     test_results = []
     for ex_idx in xrange(0, len(test_mat)):
         nextBatch, nextBatchLabels = getTestBatch(test_mat[ex_idx:ex_idx+1], test_labels_arr[ex_idx:ex_idx+1], 1, maxSeqLength)
-        predict = tf.argmax(sess.run(prediction, {input_data: nextBatch, labels: nextBatchLabels}),1)
+        predict = sess.run(prediction, {input_data: nextBatch, labels: nextBatchLabels})
         test_results.append(SentimentExample(test_exs[ex_idx].indexed_words, predict))
         print "gold: " + str(valid_labels_arr[ex_idx]) + " predicted: " + str(predict)
         if (test_labels_arr[ex_idx] == predict):
