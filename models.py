@@ -399,7 +399,7 @@ def train_fancy(train_exs, dev_exs, test_exs, word_vectors):
     # Evaluate on the test set
     valid_correct = 0
     for ex_idx in xrange(0, len(valid_mat)):
-        nextBatch, nextBatchLabels = getTestBatch(test_mat[ex_idx:ex_idx + 1], test_labels_arr[ex_idx:ex_idx + 1], 1,
+        nextBatch, nextBatchLabels = getTestBatch(valid_mat[ex_idx:ex_idx + 1], valid_labels_arr[ex_idx:ex_idx + 1], 1,
                                                   maxSeqLength)
         predict = sess.run(predictedValue, {input_data: nextBatch, labels: nextBatchLabels})
         print "gold: "+ str(valid_labels_arr[ex_idx]) + " predicted: "+ str(predict)
@@ -413,7 +413,7 @@ def train_fancy(train_exs, dev_exs, test_exs, word_vectors):
     test_results = []
     for ex_idx in xrange(0, len(test_mat)):
         nextBatch, nextBatchLabels = getTestBatch(test_mat[ex_idx:ex_idx+1], test_labels_arr[ex_idx:ex_idx+1], 1, maxSeqLength)
-        predict = sess.run(prediction, {input_data: nextBatch, labels: nextBatchLabels})
+        predict = sess.run(predictedValue, {input_data: nextBatch, labels: nextBatchLabels})
         test_results.append(SentimentExample(test_exs[ex_idx].indexed_words, predict))
         print "gold: " + str(valid_labels_arr[ex_idx]) + " predicted: " + str(predict)
         if (test_labels_arr[ex_idx] == predict):
